@@ -1,0 +1,157 @@
+# Paths for API
+openapi: 3.0.2
+info:
+  title: "CommentsService API"
+  description: "API microservice for managing the comments left on trails and any related information"
+  version: "1.0.0"
+
+servers:
+  - url: "/api"
+
+# Endpoints for comment
+paths:
+  /comments:
+    get:
+      operationId: comments.get_comments # Read
+      tags:
+        - "Comments"
+      summary: Get active comments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+        '400':
+          description: Failed to retrieve the comments
+    post:
+      operationId: comments.post_comment # Create
+      summary: Create a comment
+      security:
+        - UserIDAuth: [] # Checks the user who is creating it
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewComment'
+      responses:
+        '201':
+          description: Created
+# for filtering
+  /comments/{commentID}:
+    get:
+      summary: Get comment by User_ID
+      operationId: comments.get_comment_by_id
+      parameters:
+        - name: commentID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: The requested comment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+    put:
+      summary: Update a comment
+      security:
+        - UserIDAuth: []
+      operationId: comments.put_comment # Update
+      parameters:
+        - name: commentID
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateComment'
+      responses:
+        '200':
+          description: Successfully updated comment
+    delete:
+      summary: Archive (soft delete) a comment # Delete
+      security:
+        - UserIDAuth: []
+      operationId: comments.delete_comment
+      parameters:
+        - name: commentID
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Successfully deleted comment
+# for trails
+  /trails:
+    get:
+      operationId: trails.get_all_trails # gets the trails (read-only)
+      tags:
+        - "Trails"
+      summary: Get all trails
+      responses:
+        '200':
+          description: List of all trails
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trail'
+
+# Components of schema
+components:
+  # Checks API for credentials
+  securitySchemes:
+    UserIDAuth:
+      type: apiKey
+      in: header
+      name: UserIDAuth
+      x-apikeyInfoFunc: authorize.validate_api # tell connexion where to find function that validates api 
+  
+  schemas:
+    Comment:
+      type: object
+      properties:
+        Comment_ID: { type: integer }
+        Trail_ID: { type: integer}
+        User_ID: { type: integer }
+        Content: { type: string }
+        CreatedOn: { type: string, format: date-time }
+        IsArchived: { type: boolean }
+    NewComment:
+      type: object
+      required: [Trail_ID, Content]
+      properties:
+        Trail_ID: { type: integer }
+        Content: { type: string, maxLength: 500 } # implements input validation
+    UpdateComment:
+      type: object
+      properties:
+        Content: { type: string, maxLength: 500}
+        IsArchived: { type: boolean }
+    Trail:
+      type: object
+      properties:
+        Trail_ID: { type: integer }
+        TrailName: { type: string }
+        Rating: { type: number, format: float }
+        Difficulty: { type: string }
+        Location: { type: string }
+        Distance: { type: number, format: float }
+        EstimatedTime: { type: string }
+        ElevationGain: { type: integer }
+        TrailType: { type: string }
+        Description: { type: string }
